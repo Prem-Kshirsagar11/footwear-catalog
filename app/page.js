@@ -1,26 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-
-const products = [
-  { id: 1, name: 'Classic White Sneakers', price: 1299, gender: 'Men', category: 'Sneakers', sizes: [6, 7, 8, 9, 10], image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400' },
-  { id: 2, name: 'Black Oxford Shoes', price: 2499, gender: 'Men', category: 'Formal', sizes: [7, 8, 9, 10], image: 'https://images.unsplash.com/photo-1614252369475-531eba835eb1?w=400' },
-  { id: 3, name: 'Running Sports Shoes', price: 1799, gender: 'Men', category: 'Sports', sizes: [6, 7, 8, 9], image: 'https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=400' },
-  { id: 4, name: 'Leather Loafers', price: 1999, gender: 'Men', category: 'Loafers', sizes: [7, 8, 9, 10], image: 'https://images.unsplash.com/photo-1533867617858-e7b97e060509?w=400' },
-  { id: 5, name: 'Casual Sandals', price: 699, gender: 'Men', category: 'Sandals', sizes: [6, 7, 8, 9, 10], image: 'https://images.unsplash.com/photo-1603487742131-4160ec999306?w=400' },
-  { id: 6, name: 'Ankle Boots', price: 2999, gender: 'Men', category: 'Boots', sizes: [7, 8, 9], image: 'https://images.unsplash.com/photo-1638247025967-b4e38f787b76?w=400' },
-  { id: 7, name: 'Home Slippers', price: 399, gender: 'Men', category: 'Slippers', sizes: [6, 7, 8, 9, 10], image: 'https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=400' },
-  { id: 8, name: 'Pink Running Shoes', price: 1599, gender: 'Women', category: 'Sports', sizes: [4, 5, 6, 7], image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400' },
-  { id: 9, name: 'Block Heels', price: 2199, gender: 'Women', category: 'Heels', sizes: [4, 5, 6, 7], image: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=400' },
-  { id: 10, name: 'Pointed Formal Heels', price: 2799, gender: 'Women', category: 'Formal', sizes: [4, 5, 6], image: 'https://images.unsplash.com/photo-1515347619252-60a4bf4fff4f?w=400' },
-  { id: 11, name: 'Flat Ballerinas', price: 999, gender: 'Women', category: 'Flats', sizes: [4, 5, 6, 7], image: 'https://images.unsplash.com/photo-1554062614-6da4fa11f50a?w=400' },
-  { id: 12, name: 'Strappy Sandals', price: 1299, gender: 'Women', category: 'Sandals', sizes: [4, 5, 6, 7, 8], image: 'https://images.unsplash.com/photo-1603487742131-4160ec999306?w=400' },
-  { id: 13, name: 'Casual Sneakers', price: 1199, gender: 'Women', category: 'Sneakers', sizes: [4, 5, 6, 7], image: 'https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=400' },
-  { id: 14, name: 'Women Loafers', price: 1699, gender: 'Women', category: 'Loafers', sizes: [4, 5, 6, 7], image: 'https://images.unsplash.com/photo-1533867617858-e7b97e060509?w=400' },
-  { id: 15, name: 'Kids Sneakers', price: 799, gender: 'Kids', category: 'Sneakers', sizes: [1, 2, 3, 4, 5], image: 'https://images.unsplash.com/photo-1514989940723-e8e51635b782?w=400' },
-  { id: 16, name: 'Kids School Shoes', price: 999, gender: 'Kids', category: 'Formal', sizes: [1, 2, 3, 4, 5], image: 'https://images.unsplash.com/photo-1614252369475-531eba835eb1?w=400' },
-  { id: 17, name: 'Kids Sports Shoes', price: 899, gender: 'Kids', category: 'Sports', sizes: [1, 2, 3, 4], image: 'https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=400' },
-  { id: 18, name: 'Kids Sandals', price: 499, gender: 'Kids', category: 'Sandals', sizes: [1, 2, 3, 4, 5], image: 'https://images.unsplash.com/photo-1603487742131-4160ec999306?w=400' },
-];
+import { supabase } from './supabase';
 
 const genders = ['All', 'Men', 'Women', 'Kids'];
 const allCategories = ['Sneakers', 'Formal', 'Sports', 'Sandals', 'Slippers', 'Boots', 'Heels', 'Loafers', 'Flats'];
@@ -37,12 +17,39 @@ export default function Home() {
   const [wantedProduct, setWantedProduct] = useState(null);
   const [search, setSearch] = useState('');
   const [isMobile, setIsMobile] = useState(true);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 640);
     check();
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
+  }, []);
+
+  useEffect(() => {
+    async function fetchProducts() {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('is_active', true)
+        .order('id');
+
+      if (error) {
+        console.error('Error fetching products:', error);
+      } else {
+        const formatted = data.map(p => ({
+          ...p,
+          sizes: p.sizes ? p.sizes.split(',').map(s => s.trim()) : [],
+          image: p.image_url,
+        }));
+        setProducts(formatted);
+      }
+      setLoading(false);
+    }
+
+    fetchProducts();
   }, []);
 
   const availableCategories = ['All', ...allCategories.filter(cat =>
@@ -134,7 +141,6 @@ export default function Home() {
       {/* Top Header */}
       <div style={{ background: '#111', position: 'sticky', top: 0, zIndex: 20 }}>
         <div style={{ padding: headerPadding }}>
-
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
             <h1 style={{ ...styles.heading, color: '#fff', fontSize: isMobile ? 22 : 28, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', margin: 0 }}>
               👟 ShopCatalog
@@ -215,36 +221,45 @@ export default function Home() {
           </div>
         )}
 
+        {/* Loading State */}
+        {loading && (
+          <div style={{ textAlign: 'center', marginTop: 80 }}>
+            <p style={{ ...styles.heading, fontSize: 18, fontWeight: 800, color: '#999', textTransform: 'uppercase', letterSpacing: 2 }}>Loading...</p>
+          </div>
+        )}
+
         {/* Product Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: gridColumns, gap: isMobile ? 8 : 12 }}>
-          {filtered.map(product => (
-            <div
-              key={product.id}
-              onClick={() => setSelectedProduct(product)}
-              style={{ background: '#fff', borderRadius: 4, overflow: 'hidden', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
-            >
-              <div style={{ background: '#f5f5f5', height: cardImageHeight, overflow: 'hidden' }}>
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', mixBlendMode: 'multiply' }}
-                />
+        {!loading && (
+          <div style={{ display: 'grid', gridTemplateColumns: gridColumns, gap: isMobile ? 8 : 12 }}>
+            {filtered.map(product => (
+              <div
+                key={product.id}
+                onClick={() => setSelectedProduct(product)}
+                style={{ background: '#fff', borderRadius: 4, overflow: 'hidden', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
+              >
+                <div style={{ background: '#f5f5f5', height: cardImageHeight, overflow: 'hidden' }}>
+                  <img
+                    src={product.image}
+                    alt={product.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', mixBlendMode: 'multiply' }}
+                  />
+                </div>
+                <div style={{ padding: isMobile ? '8px 10px 10px' : '10px 12px 12px', background: '#fff' }}>
+                  <p style={{ fontSize: 9, color: '#999', fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', margin: '0 0 3px' }}>
+                    {product.gender} · {product.category}
+                  </p>
+                  <p style={{ fontSize: isMobile ? 12 : 13, fontWeight: 700, color: '#111', margin: 0, lineHeight: 1.3 }}>{product.name}</p>
+                  <p style={{ ...styles.heading, fontSize: isMobile ? 15 : 17, fontWeight: 800, color: '#111', margin: '6px 0 0' }}>
+                    ₹{product.price.toLocaleString()}
+                  </p>
+                </div>
               </div>
-              <div style={{ padding: isMobile ? '8px 10px 10px' : '10px 12px 12px', background: '#fff' }}>
-                <p style={{ fontSize: 9, color: '#999', fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', margin: '0 0 3px' }}>
-                  {product.gender} · {product.category}
-                </p>
-                <p style={{ fontSize: isMobile ? 12 : 13, fontWeight: 700, color: '#111', margin: 0, lineHeight: 1.3 }}>{product.name}</p>
-                <p style={{ ...styles.heading, fontSize: isMobile ? 15 : 17, fontWeight: 800, color: '#111', margin: '6px 0 0' }}>
-                  ₹{product.price.toLocaleString()}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         {/* Empty State */}
-        {filtered.length === 0 && (
+        {!loading && filtered.length === 0 && (
           <div style={{ textAlign: 'center', marginTop: 80 }}>
             <p style={{ fontSize: 48, margin: 0 }}>🔍</p>
             <p style={{ ...styles.heading, fontSize: 22, fontWeight: 800, color: '#111', textTransform: 'uppercase', letterSpacing: 1, marginTop: 16 }}>Nothing Found</p>
