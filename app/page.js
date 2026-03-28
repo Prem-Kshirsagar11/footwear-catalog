@@ -101,7 +101,7 @@ export default function Home() {
 
           <div style={{ padding: isMobile ? '18px 16px' : '24px 20px' }}>
             <p style={{ color: '#999', fontSize: 11, fontWeight: 600, letterSpacing: 2, textTransform: 'uppercase', margin: 0 }}>
-              {selectedProduct.gender}'s Collection
+              {`${selectedProduct.gender}'s Collection`}
             </p>
             <h2 style={{ ...styles.heading, fontSize: isMobile ? 26 : 32, fontWeight: 800, color: '#111', margin: '6px 0 0', textTransform: 'uppercase', letterSpacing: 0.5, lineHeight: 1.1 }}>
               {selectedProduct.name}
