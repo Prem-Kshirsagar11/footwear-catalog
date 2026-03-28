@@ -40,23 +40,15 @@ export default function Dashboard() {
   async function handleImageUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
-
     setUploading(true);
     const fileName = `${Date.now()}-${file.name}`;
-    const { data, error } = await supabase.storage
-      .from('product-images')
-      .upload(fileName, file);
-
+    const { error } = await supabase.storage.from('product-images').upload(fileName, file);
     if (error) {
       showMessage('Error uploading image', 'error');
       setUploading(false);
       return;
     }
-
-    const { data: urlData } = supabase.storage
-      .from('product-images')
-      .getPublicUrl(fileName);
-
+    const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(fileName);
     setForm(f => ({ ...f, image_url: urlData.publicUrl }));
     setUploading(false);
     showMessage('Image uploaded!');
@@ -77,17 +69,15 @@ export default function Dashboard() {
       image_url: form.image_url,
       is_active: form.is_active,
     };
-
     if (editingId) {
       const { error } = await supabase.from('products').update(payload).eq('id', editingId);
-      if (error) { showMessage('Error updating product', 'error'); }
+      if (error) showMessage('Error updating product', 'error');
       else showMessage('Product updated!');
     } else {
       const { error } = await supabase.from('products').insert(payload);
-      if (error) { showMessage('Error: ' + error.message, 'error'); }
+      if (error) showMessage('Error: ' + error.message, 'error');
       else showMessage('Product added!');
     }
-
     setSaving(false);
     setForm(emptyForm);
     setEditingId(null);
@@ -131,7 +121,6 @@ export default function Dashboard() {
   return (
     <div style={{ minHeight: '100vh', background: '#f5f5f5', fontFamily: "'Barlow', sans-serif" }}>
 
-      {/* Header */}
       <div style={{ background: '#111', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <h1 style={{ ...styles.heading, color: '#fff', fontSize: 24, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', margin: 0 }}>
@@ -139,15 +128,19 @@ export default function Dashboard() {
           </h1>
           <p style={{ color: '#888', fontSize: 12, margin: '2px 0 0' }}>{products.length} products total</p>
         </div>
-        <button
-          onClick={() => { setShowForm(!showForm); setEditingId(null); setForm(emptyForm); }}
-          style={{ background: '#FF3A00', color: '#fff', border: 'none', padding: '10px 18px', fontSize: 13, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer', borderRadius: 4, ...styles.heading }}
-        >
-          {showForm ? '✕ Close' : '+ Add Product'}
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <a href="/dashboard/qr" style={{ background: '#fff', color: '#111', padding: '10px 18px', fontSize: 13, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer', borderRadius: 4, textDecoration: 'none', fontFamily: "'Barlow Condensed', sans-serif" }}>
+            QR Code
+          </a>
+          <button
+            onClick={() => { setShowForm(!showForm); setEditingId(null); setForm(emptyForm); }}
+            style={{ background: '#FF3A00', color: '#fff', border: 'none', padding: '10px 18px', fontSize: 13, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer', borderRadius: 4, fontFamily: "'Barlow Condensed', sans-serif" }}
+          >
+            {showForm ? '✕ Close' : '+ Add Product'}
+          </button>
+        </div>
       </div>
 
-      {/* Message Banner */}
       {message && (
         <div style={{ background: message.type === 'error' ? '#FF3A00' : '#22c55e', color: '#fff', padding: '12px 20px', fontSize: 13, fontWeight: 700, textAlign: 'center' }}>
           {message.text}
@@ -156,35 +149,22 @@ export default function Dashboard() {
 
       <div style={{ maxWidth: 600, margin: '0 auto', padding: 16 }}>
 
-        {/* Add / Edit Form */}
         {showForm && (
           <div style={{ background: '#fff', borderRadius: 4, padding: 20, marginBottom: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
             <h2 style={{ ...styles.heading, fontSize: 20, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 16px', color: '#111' }}>
               {editingId ? '✏️ Edit Product' : '➕ New Product'}
             </h2>
-
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
               <div>
                 <label style={styles.label}>Product Name</label>
-                <input
-                  value={form.name}
-                  onChange={e => setForm({ ...form, name: e.target.value })}
-                  placeholder="e.g. Classic White Sneakers"
-                  style={styles.input}
-                />
+                <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. Classic White Sneakers" style={styles.input} />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
                   <label style={styles.label}>Price (₹)</label>
-                  <input
-                    type="number"
-                    value={form.price}
-                    onChange={e => setForm({ ...form, price: e.target.value })}
-                    placeholder="e.g. 1299"
-                    style={styles.input}
-                  />
+                  <input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} placeholder="e.g. 1299" style={styles.input} />
                 </div>
                 <div>
                   <label style={styles.label}>Gender</label>
@@ -203,71 +183,33 @@ export default function Dashboard() {
 
               <div>
                 <label style={styles.label}>Sizes (comma separated)</label>
-                <input
-                  value={form.sizes}
-                  onChange={e => setForm({ ...form, sizes: e.target.value })}
-                  placeholder="e.g. 6,7,8,9,10"
-                  style={styles.input}
-                />
+                <input value={form.sizes} onChange={e => setForm({ ...form, sizes: e.target.value })} placeholder="e.g. 6,7,8,9,10" style={styles.input} />
               </div>
 
-              {/* Image Upload */}
               <div>
                 <label style={styles.label}>Product Photo</label>
-
-                {/* Upload button - works with phone camera too */}
-                <label style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  background: '#f5f5f5', border: '2px dashed #ddd', borderRadius: 4,
-                  padding: '16px', cursor: 'pointer', fontSize: 14, fontWeight: 600, color: '#555'
-                }}>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    onChange={handleImageUpload}
-                    style={{ display: 'none' }}
-                  />
+                <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: '#f5f5f5', border: '2px dashed #ddd', borderRadius: 4, padding: '16px', cursor: 'pointer', fontSize: 14, fontWeight: 600, color: '#555' }}>
+                  <input type="file" accept="image/*" capture="environment" onChange={handleImageUpload} style={{ display: 'none' }} />
                   {uploading ? '⏳ Uploading...' : '📷 Take Photo or Choose from Gallery'}
                 </label>
-
-                {/* Image Preview */}
                 {form.image_url && (
                   <div style={{ marginTop: 10, position: 'relative' }}>
                     <img src={form.image_url} alt="preview" style={{ width: '100%', height: 180, objectFit: 'cover', borderRadius: 4 }} />
-                    <button
-                      onClick={() => setForm(f => ({ ...f, image_url: '' }))}
-                      style={{ position: 'absolute', top: 8, right: 8, background: '#FF3A00', color: '#fff', border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', fontSize: 14, fontWeight: 700 }}
-                    >✕</button>
+                    <button onClick={() => setForm(f => ({ ...f, image_url: '' }))} style={{ position: 'absolute', top: 8, right: 8, background: '#FF3A00', color: '#fff', border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>✕</button>
                   </div>
                 )}
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <input
-                  type="checkbox"
-                  checked={form.is_active}
-                  onChange={e => setForm({ ...form, is_active: e.target.checked })}
-                  id="is_active"
-                  style={{ width: 18, height: 18, cursor: 'pointer' }}
-                />
-                <label htmlFor="is_active" style={{ fontSize: 13, fontWeight: 600, color: '#555', cursor: 'pointer' }}>
-                  Active — visible in catalog
-                </label>
+                <input type="checkbox" checked={form.is_active} onChange={e => setForm({ ...form, is_active: e.target.checked })} id="is_active" style={{ width: 18, height: 18, cursor: 'pointer' }} />
+                <label htmlFor="is_active" style={{ fontSize: 13, fontWeight: 600, color: '#555', cursor: 'pointer' }}>Active — visible in catalog</label>
               </div>
 
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-                <button
-                  onClick={handleSave}
-                  disabled={saving || uploading}
-                  style={{ flex: 1, background: '#111', color: '#fff', border: 'none', padding: '14px 0', fontSize: 14, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer', borderRadius: 4, ...styles.heading, opacity: (saving || uploading) ? 0.6 : 1 }}
-                >
+                <button onClick={handleSave} disabled={saving || uploading} style={{ flex: 1, background: '#111', color: '#fff', border: 'none', padding: '14px 0', fontSize: 14, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer', borderRadius: 4, fontFamily: "'Barlow Condensed', sans-serif", opacity: (saving || uploading) ? 0.6 : 1 }}>
                   {saving ? 'Saving...' : editingId ? 'Update Product' : 'Add Product'}
                 </button>
-                <button
-                  onClick={handleCancel}
-                  style={{ background: '#fff', color: '#111', border: '2px solid #ddd', padding: '14px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', borderRadius: 4 }}
-                >
+                <button onClick={handleCancel} style={{ background: '#fff', color: '#111', border: '2px solid #ddd', padding: '14px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', borderRadius: 4 }}>
                   Cancel
                 </button>
               </div>
@@ -275,9 +217,8 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Product List */}
         {loading ? (
-          <p style={{ textAlign: 'center', color: '#999', marginTop: 40, ...styles.heading, fontSize: 18, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 2 }}>Loading...</p>
+          <p style={{ textAlign: 'center', color: '#999', marginTop: 40, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 18, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 2 }}>Loading...</p>
         ) : products.length === 0 ? (
           <div style={{ textAlign: 'center', marginTop: 60 }}>
             <p style={{ fontSize: 48 }}>👟</p>
