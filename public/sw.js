@@ -1,36 +1,20 @@
-const CACHE_NAME = 'shopcatalog-v1';
-
-const urlsToCache = [
-  '/',
-  '/manifest.json',
-];
+const CACHE_NAME = 'shopcatalog-v2';
 
 self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
-  );
-});
-
-self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request).then(response => {
-      if (response) return response;
-      return fetch(event.request).then(fetchResponse => {
-        if (!fetchResponse || fetchResponse.status !== 200 || fetchResponse.type !== 'basic') {
-          return fetchResponse;
-        }
-        const responseToCache = fetchResponse.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseToCache));
-        return fetchResponse;
-      }).catch(() => caches.match('/'));
-    })
-  );
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key)))
+      Promise.all(keys.map(key => caches.delete(key)))
     )
   );
+});
+
+self.addEventListener('fetch', event => {
+  if (event.request.url.includes('supabase')) {
+    return;
+  }
+  event.respondWith(fetch(event.request));
 });

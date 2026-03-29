@@ -28,6 +28,17 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    async function trackVisit() {
+      try {
+        await supabase.from('analytics').insert({ event: 'catalog_open' });
+      } catch (e) {
+        console.log('Analytics error:', e);
+      }
+    }
+    trackVisit();
+  }, []);
+
+  useEffect(() => {
     async function fetchProducts() {
       setLoading(true);
       const { data, error } = await supabase
@@ -38,17 +49,17 @@ export default function Home() {
 
       if (error) {
         console.error('Error fetching products:', error);
+        setLoading(false);
       } else {
-        const formatted = data.map(p => ({
+        const formatted = (data || []).map(p => ({
           ...p,
           sizes: p.sizes ? p.sizes.split(',').map(s => s.trim()) : [],
           image: p.image_url,
         }));
         setProducts(formatted);
+        setLoading(false);
       }
-      setLoading(false);
     }
-
     fetchProducts();
   }, []);
 
@@ -101,7 +112,7 @@ export default function Home() {
 
           <div style={{ padding: isMobile ? '18px 16px' : '24px 20px' }}>
             <p style={{ color: '#999', fontSize: 11, fontWeight: 600, letterSpacing: 2, textTransform: 'uppercase', margin: 0 }}>
-              {`${selectedProduct.gender}'s Collection`}
+              {selectedProduct.gender}'s Collection
             </p>
             <h2 style={{ ...styles.heading, fontSize: isMobile ? 26 : 32, fontWeight: 800, color: '#111', margin: '6px 0 0', textTransform: 'uppercase', letterSpacing: 0.5, lineHeight: 1.1 }}>
               {selectedProduct.name}
@@ -137,8 +148,6 @@ export default function Home() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#fff' }}>
-
-      {/* Top Header */}
       <div style={{ background: '#111', position: 'sticky', top: 0, zIndex: 20 }}>
         <div style={{ padding: headerPadding }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
@@ -150,7 +159,6 @@ export default function Home() {
             </span>
           </div>
 
-          {/* Search Bar */}
           <div style={{ position: 'relative', marginBottom: 10 }}>
             <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#888', fontSize: 13 }}>🔍</span>
             <input
@@ -165,7 +173,6 @@ export default function Home() {
             )}
           </div>
 
-          {/* Gender Tabs */}
           <div style={{ display: 'flex', borderBottom: '1px solid #333' }}>
             {genders.map(g => (
               <button
@@ -180,7 +187,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Wanted Banner */}
       {wantedProduct && (
         <div style={{ background: '#fff', borderLeft: '4px solid #FF3A00', margin: '12px 12px 0', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: 4 }}>
           <div>
@@ -192,28 +198,13 @@ export default function Home() {
       )}
 
       <div style={{ padding: isMobile ? 10 : 16 }}>
-
-        {/* Category Filter Chips */}
         {!search && (
           <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 10, marginBottom: 4 }}>
             {availableCategories.map(cat => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                style={{
-                  background: selectedCategory === cat ? '#111' : '#fff',
-                  color: selectedCategory === cat ? '#fff' : '#555',
-                  border: selectedCategory === cat ? '2px solid #111' : '2px solid #ddd',
-                  borderRadius: 4,
-                  padding: isMobile ? '6px 12px' : '7px 16px',
-                  fontSize: isMobile ? 11 : 12,
-                  fontWeight: 700,
-                  letterSpacing: 1,
-                  textTransform: 'uppercase',
-                  whiteSpace: 'nowrap',
-                  cursor: 'pointer',
-                  fontFamily: "'Barlow Condensed', sans-serif",
-                }}
+                style={{ background: selectedCategory === cat ? '#111' : '#fff', color: selectedCategory === cat ? '#fff' : '#555', border: selectedCategory === cat ? '2px solid #111' : '2px solid #ddd', borderRadius: 4, padding: isMobile ? '6px 12px' : '7px 16px', fontSize: isMobile ? 11 : 12, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', whiteSpace: 'nowrap', cursor: 'pointer', fontFamily: "'Barlow Condensed', sans-serif" }}
               >
                 {cat !== 'All' && categoryIcons[cat]} {cat}
               </button>
@@ -221,53 +212,35 @@ export default function Home() {
           </div>
         )}
 
-        {/* Loading State */}
         {loading && (
           <div style={{ textAlign: 'center', marginTop: 80 }}>
             <p style={{ ...styles.heading, fontSize: 18, fontWeight: 800, color: '#999', textTransform: 'uppercase', letterSpacing: 2 }}>Loading...</p>
           </div>
         )}
 
-        {/* Product Grid */}
         {!loading && (
           <div style={{ display: 'grid', gridTemplateColumns: gridColumns, gap: isMobile ? 8 : 12 }}>
             {filtered.map(product => (
-              <div
-                key={product.id}
-                onClick={() => setSelectedProduct(product)}
-                style={{ background: '#fff', borderRadius: 4, overflow: 'hidden', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
-              >
+              <div key={product.id} onClick={() => setSelectedProduct(product)} style={{ background: '#fff', borderRadius: 4, overflow: 'hidden', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
                 <div style={{ background: '#f5f5f5', height: cardImageHeight, overflow: 'hidden' }}>
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', mixBlendMode: 'multiply' }}
-                  />
+                  <img src={product.image} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover', mixBlendMode: 'multiply' }} />
                 </div>
                 <div style={{ padding: isMobile ? '8px 10px 10px' : '10px 12px 12px', background: '#fff' }}>
-                  <p style={{ fontSize: 9, color: '#999', fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', margin: '0 0 3px' }}>
-                    {product.gender} · {product.category}
-                  </p>
+                  <p style={{ fontSize: 9, color: '#999', fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', margin: '0 0 3px' }}>{product.gender} · {product.category}</p>
                   <p style={{ fontSize: isMobile ? 12 : 13, fontWeight: 700, color: '#111', margin: 0, lineHeight: 1.3 }}>{product.name}</p>
-                  <p style={{ ...styles.heading, fontSize: isMobile ? 15 : 17, fontWeight: 800, color: '#111', margin: '6px 0 0' }}>
-                    ₹{product.price.toLocaleString()}
-                  </p>
+                  <p style={{ ...styles.heading, fontSize: isMobile ? 15 : 17, fontWeight: 800, color: '#111', margin: '6px 0 0' }}>₹{product.price.toLocaleString()}</p>
                 </div>
               </div>
             ))}
           </div>
         )}
 
-        {/* Empty State */}
         {!loading && filtered.length === 0 && (
           <div style={{ textAlign: 'center', marginTop: 80 }}>
             <p style={{ fontSize: 48, margin: 0 }}>🔍</p>
             <p style={{ ...styles.heading, fontSize: 22, fontWeight: 800, color: '#111', textTransform: 'uppercase', letterSpacing: 1, marginTop: 16 }}>Nothing Found</p>
             <p style={{ fontSize: 13, color: '#999', marginTop: 6 }}>Try a different category or filter</p>
-            <button
-              onClick={() => { setSearch(''); setSelectedCategory('All'); setSelectedGender('All'); }}
-              style={{ marginTop: 20, background: '#111', color: '#fff', border: 'none', padding: '12px 28px', fontSize: 12, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', cursor: 'pointer', borderRadius: 4, fontFamily: "'Barlow Condensed', sans-serif" }}
-            >
+            <button onClick={() => { setSearch(''); setSelectedCategory('All'); setSelectedGender('All'); }} style={{ marginTop: 20, background: '#111', color: '#fff', border: 'none', padding: '12px 28px', fontSize: 12, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', cursor: 'pointer', borderRadius: 4, fontFamily: "'Barlow Condensed', sans-serif" }}>
               Clear Filters
             </button>
           </div>

@@ -22,8 +22,21 @@ export default function Dashboard() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState(null);
+  const [analytics, setAnalytics] = useState({ today: 0, week: 0, total: 0 });
 
-  useEffect(() => { fetchProducts(); }, []);
+  useEffect(() => { fetchProducts(); fetchAnalytics(); }, []);
+
+  async function fetchAnalytics() {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+    const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7).toISOString();
+
+    const { count: total } = await supabase.from('analytics').select('*', { count: 'exact', head: true }).eq('event', 'catalog_open');
+    const { count: today } = await supabase.from('analytics').select('*', { count: 'exact', head: true }).eq('event', 'catalog_open').gte('created_at', todayStart);
+    const { count: week } = await supabase.from('analytics').select('*', { count: 'exact', head: true }).eq('event', 'catalog_open').gte('created_at', weekStart);
+
+    setAnalytics({ today: today || 0, week: week || 0, total: total || 0 });
+  }
 
   async function fetchProducts() {
     setLoading(true);
@@ -126,7 +139,7 @@ export default function Dashboard() {
           <h1 style={{ ...styles.heading, color: '#fff', fontSize: 24, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', margin: 0 }}>
             👟 Dashboard
           </h1>
-          <p style={{ color: '#888', fontSize: 12, margin: '2px 0 0' }}>{products.length} products total</p>
+          <p style={{ color: '#888', fontSize: 12, margin: '2px 0 0' }}>{products.length} products · {analytics.today} opens today · {analytics.week} this week · {analytics.total} total</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <a href="/dashboard/qr" style={{ background: '#fff', color: '#111', padding: '10px 18px', fontSize: 13, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer', borderRadius: 4, textDecoration: 'none', fontFamily: "'Barlow Condensed', sans-serif" }}>
