@@ -202,7 +202,8 @@ export default function Dashboard() {
               <div>
                 <label style={styles.label}>Product Photo</label>
                 <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: '#f5f5f5', border: '2px dashed #ddd', borderRadius: 4, padding: '16px', cursor: 'pointer', fontSize: 14, fontWeight: 600, color: '#555' }}>
-                  <input type="file" accept="image/*" capture="environment" onChange={handleImageUpload} style={{ display: 'none' }} />
+                  <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
+```
                   {uploading ? '⏳ Uploading...' : '📷 Take Photo or Choose from Gallery'}
                 </label>
                 {form.image_url && (
