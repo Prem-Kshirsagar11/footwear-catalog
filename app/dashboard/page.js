@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabase';
 
 const CATEGORIES = ['Sneakers', 'Formal', 'Sports', 'Sandals', 'Slippers', 'Boots', 'Heels', 'Loafers', 'Flats'];
@@ -23,6 +23,8 @@ export default function Dashboard() {
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState(null);
   const [analytics, setAnalytics] = useState({ today: 0, week: 0, total: 0 });
+  const [imgPos, setImgPos] = useState({ x: 50, y: 50 });
+  const dragRef = useRef(null);
 
   useEffect(() => { fetchProducts(); fetchAnalytics(); }, []);
 
@@ -30,11 +32,9 @@ export default function Dashboard() {
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
     const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7).toISOString();
-
     const { count: total } = await supabase.from('analytics').select('*', { count: 'exact', head: true }).eq('event', 'catalog_open');
     const { count: today } = await supabase.from('analytics').select('*', { count: 'exact', head: true }).eq('event', 'catalog_open').gte('created_at', todayStart);
     const { count: week } = await supabase.from('analytics').select('*', { count: 'exact', head: true }).eq('event', 'catalog_open').gte('created_at', weekStart);
-
     setAnalytics({ today: today || 0, week: week || 0, total: total || 0 });
   }
 
@@ -63,8 +63,30 @@ export default function Dashboard() {
     }
     const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(fileName);
     setForm(f => ({ ...f, image_url: urlData.publicUrl }));
+    setImgPos({ x: 50, y: 50 });
     setUploading(false);
-    showMessage('Image uploaded!');
+    showMessage('Image uploaded! Drag to adjust framing.');
+  }
+
+  function handleDragStart(e) {
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    dragRef.current = { startX: clientX, startY: clientY, posX: imgPos.x, posY: imgPos.y };
+  }
+
+  function handleDragMove(e) {
+    if (!dragRef.current) return;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const deltaX = clientX - dragRef.current.startX;
+    const deltaY = clientY - dragRef.current.startY;
+    const newX = Math.min(100, Math.max(0, dragRef.current.posX - deltaX / 2));
+    const newY = Math.min(100, Math.max(0, dragRef.current.posY - deltaY / 2));
+    setImgPos({ x: newX, y: newY });
+  }
+
+  function handleDragEnd() {
+    dragRef.current = null;
   }
 
   async function handleSave() {
@@ -95,6 +117,7 @@ export default function Dashboard() {
     setForm(emptyForm);
     setEditingId(null);
     setShowForm(false);
+    setImgPos({ x: 50, y: 50 });
     fetchProducts();
   }
 
@@ -122,6 +145,7 @@ export default function Dashboard() {
     });
     setEditingId(product.id);
     setShowForm(true);
+    setImgPos({ x: 50, y: 50 });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -129,6 +153,7 @@ export default function Dashboard() {
     setForm(emptyForm);
     setEditingId(null);
     setShowForm(false);
+    setImgPos({ x: 50, y: 50 });
   }
 
   return (
@@ -199,17 +224,63 @@ export default function Dashboard() {
                 <input value={form.sizes} onChange={e => setForm({ ...form, sizes: e.target.value })} placeholder="e.g. 6,7,8,9,10" style={styles.input} />
               </div>
 
+              {/* Image Upload */}
               <div>
                 <label style={styles.label}>Product Photo</label>
-                <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: '#f5f5f5', border: '2px dashed #ddd', borderRadius: 4, padding: '16px', cursor: 'pointer', fontSize: 14, fontWeight: 600, color: '#555' }}>
-                  <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
-```
-                  {uploading ? '⏳ Uploading...' : '📷 Take Photo or Choose from Gallery'}
-                </label>
-                {form.image_url && (
-                  <div style={{ marginTop: 10, position: 'relative' }}>
-                    <img src={form.image_url} alt="preview" style={{ width: '100%', height: 180, objectFit: 'cover', borderRadius: 4 }} />
-                    <button onClick={() => setForm(f => ({ ...f, image_url: '' }))} style={{ position: 'absolute', top: 8, right: 8, background: '#FF3A00', color: '#fff', border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>✕</button>
+
+                {/* Two separate buttons */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+
+                  {/* Camera button */}
+                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: '#111', border: 'none', borderRadius: 4, padding: '12px', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#fff', fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: 1, textTransform: 'uppercase' }}>
+                    <input type="file" accept="image/*" capture="environment" onChange={handleImageUpload} style={{ display: 'none' }} />
+                    📷 Camera
+                  </label>
+
+                  {/* Gallery button */}
+                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: '#fff', border: '2px solid #111', borderRadius: 4, padding: '12px', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#111', fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: 1, textTransform: 'uppercase' }}>
+                    <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
+                    🖼️ Gallery
+                  </label>
+
+                </div>
+
+                {uploading && (
+                  <p style={{ textAlign: 'center', color: '#999', fontSize: 13, fontWeight: 600, margin: '8px 0' }}>⏳ Uploading...</p>
+                )}
+
+                {/* Draggable Preview */}
+                {form.image_url && !uploading && (
+                  <div>
+                    <p style={{ fontSize: 11, color: '#999', fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', margin: '0 0 6px' }}>
+                      👆 Drag to adjust framing
+                    </p>
+                    <div
+                      style={{ width: '100%', height: 200, borderRadius: 4, overflow: 'hidden', cursor: 'grab', position: 'relative', border: '2px solid #111', userSelect: 'none' }}
+                      onMouseDown={handleDragStart}
+                      onMouseMove={handleDragMove}
+                      onMouseUp={handleDragEnd}
+                      onMouseLeave={handleDragEnd}
+                      onTouchStart={handleDragStart}
+                      onTouchMove={handleDragMove}
+                      onTouchEnd={handleDragEnd}
+                    >
+                      <img
+                        src={form.image_url}
+                        alt="preview"
+                        draggable={false}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${imgPos.x}% ${imgPos.y}%`, pointerEvents: 'none' }}
+                      />
+                      <div style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 2, letterSpacing: 1 }}>
+                        CATALOG PREVIEW
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => { setForm(f => ({ ...f, image_url: '' })); setImgPos({ x: 50, y: 50 }); }}
+                      style={{ marginTop: 8, background: '#fff0f0', color: '#FF3A00', border: 'none', padding: '6px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', borderRadius: 4, width: '100%' }}
+                    >
+                      ✕ Remove Image
+                    </button>
                   </div>
                 )}
               </div>
